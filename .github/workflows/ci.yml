@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  node-ci:
+    name: Node ${{ matrix.node-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["lts/*", "node"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test --if-present
+
+      - name: Build
+        run: npm run build
+
+      - name: Software composition analysis
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: License checker (optional)
+        run: npx --yes license-checker --summary --production
+        continue-on-error: true
+
+      - name: Prepare build artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          tar -czf artifacts/source.tar.gz src package.json package-lock.json tsconfig.json
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-${{ matrix.os }}-${{ matrix.node-version }}
+          path: artifacts/source.tar.gz
+          if-no-files-found: error
+
+  promtool-lint:
+    name: promtool metrics lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install promtool
+        env:
+          PROMTOOL_VERSION: "2.53.1"
+        run: |
+          set -euo pipefail
+          curl -sSL "https://github.com/prometheus/prometheus/releases/download/v${PROMTOOL_VERSION}/prometheus-${PROMTOOL_VERSION}.linux-amd64.tar.gz" -o /tmp/prometheus.tar.gz
+          tar -xzf /tmp/prometheus.tar.gz -C /tmp
+          echo "/tmp/prometheus-${PROMTOOL_VERSION}.linux-amd64" >> "$GITHUB_PATH"
+
+      - name: Validate metrics format
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -d metrics ]; then
+            mapfile -t metric_files < <(find metrics -name '*.prom' -type f)
+            if [ "${#metric_files[@]}" -eq 0 ]; then
+              echo "No Prometheus metrics files found; skipping validation."
+            else
+              for metric_file in "${metric_files[@]}"; do
+                echo "Validating $metric_file"
+                promtool check metrics "$metric_file"
+              done
+            fi
+          else
+            echo "No metrics directory present; skipping validation."
+          fi
