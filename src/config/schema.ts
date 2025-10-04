@@ -1,6 +1,8 @@
 import type { Schema } from "ajv";
 
-export const DURATION_PATTERN = "^(?:\\d+)(?:ms|s|m)$";
+import { durationPatternSource } from "../duration";
+
+export const DURATION_PATTERN = durationPatternSource;
 
 export const servicesConfigSchema = {
   $id: "https://health-multi.dev/schemas/services-config.json",
