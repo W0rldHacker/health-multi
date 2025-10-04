@@ -1,6 +1,6 @@
 {
   "name": "@worldhacker/health-multi",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "CLI for parallel polling /health, TUI, aggregated statuses, JSON/Prometheus export, strict exit codes",
   "license": "MIT",
   "scripts": {
@@ -13,7 +13,8 @@
     "prepare": "husky",
     "commitlint": "commitlint --edit",
     "changeset": "changeset",
-    "release": "changeset publish"
+    "release": "changeset publish",
+    "test": "vitest run"
   },
   "engines": {
     "node": ">=20.10.0 || >=22.0.0"
@@ -36,7 +37,8 @@
     "lint-staged": "^16.2.3",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.45.0"
+    "typescript-eslint": "^8.45.0",
+    "vitest": "^3.2.4"
   },
   "lint-staged": {
     "*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}": [
@@ -44,5 +46,12 @@
       "eslint --max-warnings=0 --fix"
     ],
     "*.{json,md,yml,yaml}": "prettier --write"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-errors": "^3.0.0",
+    "ajv-formats": "^3.0.1",
+    "ajv-keywords": "^5.1.0",
+    "yaml": "^2.8.1"
   }
 }
