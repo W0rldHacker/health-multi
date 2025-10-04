@@ -1,3 +1,1 @@
-export function placeholder(): string {
-  return "health-multi-agent";
-}
+export * from "./domain";
