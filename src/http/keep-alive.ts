@@ -36,15 +36,59 @@ export function createKeepAliveAgents(options: KeepAliveAgentOptions = {}): Keep
   const http = new Agent(mergeOptions(options.defaults, options.http));
   const https = new Agent(mergeOptions(options.defaults, options.https));
 
+  const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM"];
+  const signalListeners = new Map<NodeJS.Signals, () => void>();
+
+  let closePromise: Promise<void> | null = null;
+  let destroyPromise: Promise<void> | null = null;
+
+  const cleanupSignalListeners = () => {
+    for (const [signal, listener] of signalListeners) {
+      process.removeListener(signal, listener);
+    }
+    signalListeners.clear();
+  };
+
+  const closeAgents = async () => {
+    if (closePromise) {
+      return closePromise;
+    }
+
+    if (destroyPromise) {
+      return destroyPromise;
+    }
+
+    cleanupSignalListeners();
+    closePromise = Promise.all([http.close(), https.close()]).then(() => {});
+    return closePromise;
+  };
+
+  const destroyAgents = async (err?: Error) => {
+    if (destroyPromise) {
+      return destroyPromise;
+    }
+
+    cleanupSignalListeners();
+    const reason = err ?? null;
+    destroyPromise = Promise.all([http.destroy(reason), https.destroy(reason)]).then(() => {});
+    return destroyPromise;
+  };
+
+  for (const signal of signals) {
+    const listener = () => {
+      void closeAgents().catch(async (error) => {
+        const reason = error instanceof Error ? error : new Error(String(error));
+        await destroyAgents(reason);
+      });
+    };
+    signalListeners.set(signal, listener);
+    process.once(signal, listener);
+  }
+
   return {
     http,
     https,
-    close: async () => {
-      await Promise.all([http.close(), https.close()]);
-    },
-    destroy: async (err?: Error) => {
-      const reason = err ?? null;
-      await Promise.all([http.destroy(reason), https.destroy(reason)]);
-    },
+    close: closeAgents,
+    destroy: destroyAgents,
   };
 }
