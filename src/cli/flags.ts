@@ -58,8 +58,32 @@ function parseMissingStatusPolicy(value: string): MissingStatusPolicy {
   throw new CliFlagError("--missing-status must be one of: degraded, down");
 }
 
-export function parseCliFlags(argv: readonly string[]): CliParameters {
+export interface ParseCliFlagsOptions {
+  env?: NodeJS.ProcessEnv;
+  warn?: (message: string) => void;
+}
+
+function pickProxyFromEnv(env: NodeJS.ProcessEnv): string | undefined {
+  const candidates = [env.HTTPS_PROXY, env.HTTP_PROXY];
+
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return undefined;
+}
+
+export function parseCliFlags(
+  argv: readonly string[],
+  options: ParseCliFlagsOptions = {},
+): CliParameters {
+  const env = options.env ?? process.env;
+  const warn = options.warn ?? console.warn;
+
   const result: CliParameters = { ...DEFAULT_CLI_PARAMETERS };
+  let insecureFlagUsed = false;
 
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
@@ -114,6 +138,7 @@ export function parseCliFlags(argv: readonly string[]): CliParameters {
 
       case "--insecure": {
         result.insecure = true;
+        insecureFlagUsed = true;
         break;
       }
 
@@ -128,6 +153,19 @@ export function parseCliFlags(argv: readonly string[]): CliParameters {
         throw new CliFlagError(`Unknown flag: ${token}`);
       }
     }
+  }
+
+  if (result.proxy === undefined) {
+    const envProxy = pickProxyFromEnv(env);
+    if (envProxy) {
+      result.proxy = envProxy;
+    }
+  }
+
+  if (insecureFlagUsed) {
+    warn(
+      "Warning: TLS certificate verification is disabled (--insecure). Do not use this option in production.",
+    );
   }
 
   return result;

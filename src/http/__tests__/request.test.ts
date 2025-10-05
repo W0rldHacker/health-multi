@@ -42,6 +42,7 @@ describe("httpRequest", () => {
         url,
         method: "GET",
         timeoutMs: 10,
+        env: {},
       }),
     ).rejects.toBeInstanceOf(RequestTimeoutError);
 
@@ -61,6 +62,7 @@ describe("httpRequest", () => {
       url,
       method: "GET",
       timeoutMs: 500,
+      env: {},
     });
 
     expect(response.statusCode).toBe(200);
@@ -87,6 +89,7 @@ describe("httpRequest", () => {
       url,
       method: "GET",
       signal: controller.signal,
+      env: {},
     });
 
     setTimeout(() => {

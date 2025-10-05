@@ -11,6 +11,7 @@ export interface KeepAliveAgentOptions {
   defaults?: Agent.Options;
   http?: Agent.Options;
   https?: Agent.Options;
+  insecure?: boolean;
 }
 
 const DEFAULT_AGENT_OPTIONS: Agent.Options = {
@@ -32,9 +33,42 @@ function mergeOptions(
   };
 }
 
+function applyInsecureTlsOverrides(
+  options: Agent.Options,
+  insecure: boolean | undefined,
+): Agent.Options {
+  if (!insecure) {
+    return options;
+  }
+
+  const connectOption = options.connect;
+
+  if (typeof connectOption === "function") {
+    return {
+      ...options,
+      connect: connectOption,
+    };
+  }
+
+  const existingConnectOptions =
+    typeof connectOption === "object" && connectOption !== null ? connectOption : {};
+
+  return {
+    ...options,
+    connect: {
+      ...existingConnectOptions,
+      rejectUnauthorized: false,
+    },
+  };
+}
+
 export function createKeepAliveAgents(options: KeepAliveAgentOptions = {}): KeepAliveAgents {
   const http = new Agent(mergeOptions(options.defaults, options.http));
-  const https = new Agent(mergeOptions(options.defaults, options.https));
+  const httpsOptions = applyInsecureTlsOverrides(
+    mergeOptions(options.defaults, options.https),
+    options.insecure,
+  );
+  const https = new Agent(httpsOptions);
 
   const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM"];
   const signalListeners = new Map<NodeJS.Signals, () => void>();
