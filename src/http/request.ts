@@ -1,5 +1,10 @@
 import { ProxyAgent, request, type Dispatcher } from "undici";
 
+import {
+  createHttpRequestDebugContext,
+  type HttpRequestDebugContext,
+  type HttpRequestDebugOptions,
+} from "./debug";
 import type { KeepAliveAgents } from "./keep-alive";
 
 export class RequestTimeoutError extends Error {
@@ -28,6 +33,7 @@ export interface HttpRequestOptions extends UndiciRequestOptions {
   insecure?: boolean;
   env?: NodeJS.ProcessEnv;
   proxyCache?: ProxyAgentCache;
+  debug?: HttpRequestDebugOptions;
 }
 
 function ensureUrlInstance(value: string | URL): URL {
@@ -135,6 +141,7 @@ export async function httpRequest(options: HttpRequestOptions): Promise<Dispatch
     env,
     proxyCache,
     dispatcher,
+    debug,
     ...rest
   } = options;
 
@@ -152,6 +159,20 @@ export async function httpRequest(options: HttpRequestOptions): Promise<Dispatch
   const timeoutError = hasTimeout ? new RequestTimeoutError(timeoutMs) : null;
   const cleanups: Array<() => void> = [];
   let abortedByInternalTimeout = false;
+
+  const requestDebug: HttpRequestDebugContext | null = debug
+    ? createHttpRequestDebugContext({
+        url: targetUrl,
+        method: rest.method ?? "GET",
+        attempt: debug.attempt ?? 1,
+        retries: debug.retries ?? 0,
+        backoffMs: debug.backoffMs,
+        logger: debug.logger,
+        id: debug.id,
+      })
+    : null;
+
+  requestDebug?.register();
 
   if (controller) {
     if (typeof timeoutMs === "number") {
@@ -176,6 +197,8 @@ export async function httpRequest(options: HttpRequestOptions): Promise<Dispatch
 
   let dispatcherToUse: Dispatcher | undefined = dispatcher;
 
+  requestDebug?.setProxy(resolvedProxy);
+
   if (!dispatcherToUse) {
     if (resolvedProxy) {
       dispatcherToUse = getProxyAgent(resolvedProxy, insecure, proxyCache);
@@ -185,26 +208,33 @@ export async function httpRequest(options: HttpRequestOptions): Promise<Dispatch
   }
 
   try {
-    return await request(url, {
+    const response = await request(url, {
       ...rest,
       ...(dispatcherToUse ? { dispatcher: dispatcherToUse } : {}),
       signal: requestSignal,
     });
+    requestDebug?.onResponse(response);
+    return response;
   } catch (error) {
     if (controller && controller.signal.aborted) {
       if (abortedByInternalTimeout) {
+        requestDebug?.onError(timeoutError ?? new RequestTimeoutError(timeoutMs!));
         throw timeoutError ?? new RequestTimeoutError(timeoutMs!);
       }
       const reason: unknown = controller.signal.reason;
       if (reason instanceof Error) {
+        requestDebug?.onError(reason);
         throw reason;
       }
+      requestDebug?.onError(error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
+    requestDebug?.onError(error instanceof Error ? error : new Error(String(error)));
     throw error;
   } finally {
     for (const cleanup of cleanups.splice(0, cleanups.length)) {
       cleanup();
     }
+    requestDebug?.finalizeIfNeeded();
   }
 }
