@@ -93,6 +93,13 @@ export function parseCliFlags(
     }
 
     switch (token) {
+      case "--config": {
+        const value = expectValue(argv, index, token);
+        result.configPath = value;
+        index += 1;
+        break;
+      }
+
       case "--interval": {
         const value = expectValue(argv, index, token);
         result.intervalMs = parseDurationToMilliseconds(value);
@@ -139,6 +146,11 @@ export function parseCliFlags(
       case "--insecure": {
         result.insecure = true;
         insecureFlagUsed = true;
+        break;
+      }
+
+      case "--debug": {
+        result.debug = true;
         break;
       }
 

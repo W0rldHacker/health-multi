@@ -37,6 +37,16 @@ describe("parseCliFlags", () => {
     });
   });
 
+  it("parses configuration path", () => {
+    expect(parseCliFlags(["--config", "./services.yaml"], baseOptions)).toMatchObject({
+      configPath: "./services.yaml",
+    });
+  });
+
+  it("enables debug mode", () => {
+    expect(parseCliFlags(["--debug"], baseOptions)).toMatchObject({ debug: true });
+  });
+
   it("sets insecure flag", () => {
     expect(parseCliFlags(["--insecure"], baseOptions)).toMatchObject({ insecure: true });
   });

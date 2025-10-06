@@ -77,6 +77,8 @@ export interface AggregateResult {
 }
 
 export interface CliParameters {
+  /** Path to the services configuration file. */
+  configPath?: string;
   /** Interval between probe cycles in milliseconds. */
   intervalMs?: number;
   /** Timeout for a single HTTP request in milliseconds. */
@@ -91,6 +93,8 @@ export interface CliParameters {
   proxy?: string;
   /** Disable TLS verification (should only be used for tests). */
   insecure?: boolean;
+  /** Enable verbose HTTP diagnostics logging. */
+  debug?: boolean;
   /**
    * Determines which status should be assigned when the response payload
    * does not contain an explicit status field.
