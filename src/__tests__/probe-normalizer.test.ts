@@ -1,74 +1,102 @@
 import { describe, expect, it } from "vitest";
 
-import type { MissingStatusPolicy } from "../domain";
+import type { MissingStatusPolicy, NormalizedStatus } from "../domain";
 import { normalizeStatus, resolveLatency } from "../probe-normalizer";
 
 describe("normalizeStatus", () => {
-  it("returns ok when HTTP status is 2xx and payload status is ok", () => {
-    expect(
-      normalizeStatus({
-        httpStatus: 200,
-        payload: { status: "ok" },
-      }),
-    ).toBe("ok");
+  const successHttpStatuses = [200, 204, 250, 299];
+  const failureHttpStatuses = [undefined, 100, 199, 300, 404, 503];
+  const normalizedValues: NormalizedStatus[] = ["ok", "degraded", "down"];
+
+  describe("successful HTTP codes", () => {
+    it.each(successHttpStatuses)("returns payload status for code %s", (httpStatus) => {
+      for (const expected of normalizedValues) {
+        expect(
+          normalizeStatus({
+            httpStatus,
+            payload: { status: expected },
+          }),
+        ).toBe(expected);
+      }
+    });
+
+    it.each(successHttpStatuses)(
+      "applies provided missing policy when payload.status is absent for code %s",
+      (httpStatus) => {
+        const policies: MissingStatusPolicy[] = ["down", "degraded"];
+
+        for (const policy of policies) {
+          expect(
+            normalizeStatus({
+              httpStatus,
+              payload: {},
+              missingStatusPolicy: policy,
+            }),
+          ).toBe(policy);
+
+          expect(
+            normalizeStatus({
+              httpStatus,
+              payload: { status: undefined },
+              missingStatusPolicy: policy,
+            }),
+          ).toBe(policy);
+
+          expect(
+            normalizeStatus({
+              httpStatus,
+              payload: { status: 123 },
+              missingStatusPolicy: policy,
+            }),
+          ).toBe(policy);
+
+          expect(
+            normalizeStatus({
+              httpStatus,
+              payload: "not an object",
+              missingStatusPolicy: policy,
+            }),
+          ).toBe(policy);
+        }
+      },
+    );
+
+    it.each(successHttpStatuses)("defaults to down policy for code %s", (httpStatus) => {
+      expect(
+        normalizeStatus({
+          httpStatus,
+          payload: {},
+        }),
+      ).toBe("down");
+    });
   });
 
-  it("returns degraded when HTTP status is 2xx and payload status is degraded", () => {
-    expect(
-      normalizeStatus({
-        httpStatus: 204,
-        payload: { status: "degraded" },
-      }),
-    ).toBe("degraded");
-  });
+  describe("non-successful HTTP codes", () => {
+    it.each(failureHttpStatuses)("returns down regardless of payload for code %s", (httpStatus) => {
+      for (const status of normalizedValues) {
+        expect(
+          normalizeStatus({
+            httpStatus,
+            payload: { status },
+          }),
+        ).toBe("down");
+      }
 
-  it("returns down when HTTP status is 2xx and payload status is down", () => {
-    expect(
-      normalizeStatus({
-        httpStatus: 200,
-        payload: { status: "down" },
-      }),
-    ).toBe("down");
-  });
+      expect(
+        normalizeStatus({
+          httpStatus,
+          payload: {},
+          missingStatusPolicy: "degraded",
+        }),
+      ).toBe("down");
 
-  it("returns missing status policy when HTTP status is 2xx without explicit status", () => {
-    const missingPolicy: MissingStatusPolicy = "degraded";
-
-    expect(
-      normalizeStatus({
-        httpStatus: 200,
-        payload: {},
-        missingStatusPolicy: missingPolicy,
-      }),
-    ).toBe(missingPolicy);
-  });
-
-  it("defaults to down when HTTP status is 2xx without explicit status", () => {
-    expect(
-      normalizeStatus({
-        httpStatus: 200,
-        payload: {},
-      }),
-    ).toBe("down");
-  });
-
-  it("returns down when HTTP status is not successful regardless of payload", () => {
-    expect(
-      normalizeStatus({
-        httpStatus: 503,
-        payload: { status: "ok" },
-      }),
-    ).toBe("down");
-  });
-
-  it("treats unexpected status values as missing and applies policy", () => {
-    expect(
-      normalizeStatus({
-        httpStatus: 200,
-        payload: { status: "UNKNOWN" },
-        missingStatusPolicy: "degraded",
-      }),
-    ).toBe("degraded");
+      expect(
+        normalizeStatus({
+          httpStatus,
+          payload: null,
+        }),
+      ).toBe("down");
+    });
   });
 });
 

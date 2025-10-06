@@ -64,6 +64,15 @@ export async function startMockHealthServer(
     );
   });
 
+  server.route("GET", "/health/missing-status", async (ctx) => {
+    await ctx.respond(
+      jsonResponse({
+        timings: { total_ms: 34 },
+        version: "2.0.0",
+      }),
+    );
+  });
+
   server.route("GET", "/health/drop", (ctx) => {
     ctx.res.writeHead(200, {
       "Content-Type": "application/json; charset=utf-8",
