@@ -6,3 +6,4 @@ export * from "./scheduler";
 export * from "./backoff";
 export * from "./retry";
 export * from "./probe-normalizer";
+export * from "./storage";
