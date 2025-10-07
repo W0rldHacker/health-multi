@@ -2,6 +2,8 @@ export type NormalizedStatus = "ok" | "degraded" | "down";
 
 export type MissingStatusPolicy = Exclude<NormalizedStatus, "ok">;
 
+export type CheckOutputFormat = "json" | "ndjson";
+
 export interface Service {
   /**
    * Human readable unique name of the service.
@@ -100,4 +102,6 @@ export interface CliParameters {
    * does not contain an explicit status field.
    */
   missingStatusPolicy?: MissingStatusPolicy;
+  /** Output format for results produced by the check command. */
+  outputFormat?: CheckOutputFormat;
 }

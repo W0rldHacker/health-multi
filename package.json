@@ -1,6 +1,6 @@
 {
   "name": "@worldhacker/health-multi",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "CLI for parallel polling /health, TUI, aggregated statuses, JSON/Prometheus export, strict exit codes",
   "license": "MIT",
   "scripts": {

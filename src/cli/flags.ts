@@ -1,4 +1,4 @@
-import { type CliParameters, type MissingStatusPolicy } from "../domain";
+import { type CheckOutputFormat, type CliParameters, type MissingStatusPolicy } from "../domain";
 import { parseDurationToMilliseconds } from "../duration";
 import { CliFlagError } from "./errors";
 
@@ -58,6 +58,16 @@ function parseMissingStatusPolicy(value: string): MissingStatusPolicy {
   throw new CliFlagError("--missing-status must be one of: degraded, down");
 }
 
+function parseOutputFormat(value: string): CheckOutputFormat {
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === "json" || normalized === "ndjson") {
+    return normalized;
+  }
+
+  throw new CliFlagError("--out must be one of: json, ndjson");
+}
+
 export interface ParseCliFlagsOptions {
   env?: NodeJS.ProcessEnv;
   warn?: (message: string) => void;
@@ -82,7 +92,7 @@ export function parseCliFlags(
   const env = options.env ?? process.env;
   const warn = options.warn ?? console.warn;
 
-  const result: CliParameters = { ...DEFAULT_CLI_PARAMETERS };
+  const result: CliParameters = { ...DEFAULT_CLI_PARAMETERS, outputFormat: "json" };
   let insecureFlagUsed = false;
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -157,6 +167,13 @@ export function parseCliFlags(
       case "--missing-status": {
         const value = expectValue(argv, index, token);
         result.missingStatusPolicy = parseMissingStatusPolicy(value);
+        index += 1;
+        break;
+      }
+
+      case "--out": {
+        const value = expectValue(argv, index, token);
+        result.outputFormat = parseOutputFormat(value);
         index += 1;
         break;
       }

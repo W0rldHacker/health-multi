@@ -14,6 +14,7 @@ describe("parseCliFlags", () => {
       timeoutMs: 3_000,
       retries: 1,
       concurrency: 10,
+      outputFormat: "json",
     });
   });
 
@@ -34,6 +35,12 @@ describe("parseCliFlags", () => {
   it("parses headers", () => {
     expect(parseCliFlags(["--headers", "Authorization: Bearer token"], baseOptions)).toMatchObject({
       headers: { Authorization: "Bearer token" },
+    });
+  });
+
+  it("parses output format", () => {
+    expect(parseCliFlags(["--out", "ndjson"], baseOptions)).toMatchObject({
+      outputFormat: "ndjson",
     });
   });
 
