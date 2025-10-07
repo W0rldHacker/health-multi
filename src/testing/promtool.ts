@@ -41,7 +41,15 @@ function getArchiveInfo(): ArchiveInfo {
     return { suffix: "darwin-amd64", binaryName: "promtool" };
   }
 
-  throw new Error(`Unsupported platform for promtool download: ${platform} ${arch}`);
+  if (platform === "win32") {
+    throw new PromtoolUnavailableError(
+      "Promtool downloads are not supported on the win32 platform. Set PROMTOOL_PATH to an existing binary to enable the test.",
+    );
+  }
+
+  throw new PromtoolUnavailableError(
+    `Unsupported platform for promtool download: ${platform} ${arch}`,
+  );
 }
 
 async function pathExists(path: string): Promise<boolean> {
