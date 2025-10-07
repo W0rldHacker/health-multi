@@ -1,41 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { type AggregateResult } from "../domain";
 import { serializeAggregateResultToPrometheusTextfile } from "../prometheus-textfile";
-
-function createAggregateResult(): AggregateResult {
-  const completedAt = new Date("2025-09-01T10:15:00.000Z");
-
-  return {
-    status: "degraded",
-    startedAt: new Date("2025-09-01T10:14:50.000Z"),
-    completedAt,
-    results: [
-      {
-        serviceName: "api",
-        status: "ok",
-        latencyMs: 23,
-        checkedAt: completedAt,
-        payload: { version: "1.4.2", region: "eu" },
-      },
-      {
-        serviceName: "auth",
-        status: "degraded",
-        latencyMs: 180,
-        checkedAt: completedAt,
-      },
-      {
-        serviceName: "search",
-        status: "down",
-        checkedAt: completedAt,
-      },
-    ],
-  } satisfies AggregateResult;
-}
+import { createSampleAggregateResult } from "../testing/aggregate-fixtures";
 
 describe("prometheus textfile serialization", () => {
   it("produces gauges for status, latency, and scrape timestamp", () => {
-    const aggregate = createAggregateResult();
+    const aggregate = createSampleAggregateResult();
 
     const textfile = serializeAggregateResultToPrometheusTextfile(aggregate);
 
@@ -57,5 +27,20 @@ describe("prometheus textfile serialization", () => {
     expect(textfile).toContain("# HELP health_scrape_timestamp_ms unix epoch ms\n");
     expect(textfile).toContain("# TYPE health_scrape_timestamp_ms gauge\n");
     expect(textfile).toContain(`health_scrape_timestamp_ms ${expectedTimestamp}\n`);
+  });
+
+  it("escapes reserved characters in label values", () => {
+    const aggregate = createSampleAggregateResult();
+
+    aggregate.results[0] = {
+      ...aggregate.results[0],
+      serviceName: 'svc"1',
+      payload: { region: "eu\nwest\\1" },
+    };
+
+    const textfile = serializeAggregateResultToPrometheusTextfile(aggregate);
+
+    expect(textfile).toContain('health_status{service="svc\\"1",region="eu\\nwest\\\\1"} 1');
+    expect(textfile).toContain('health_latency_ms{service="svc\\"1",region="eu\\nwest\\\\1"} 23');
   });
 });
