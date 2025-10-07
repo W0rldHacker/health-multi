@@ -1,4 +1,5 @@
 import type { AggregateResult, NormalizedStatus, ProbeResult } from "./domain";
+import { readProbeSupplementalField } from "./probe-metadata";
 
 export interface CheckJsonServiceResult {
   name: string;
@@ -14,27 +15,6 @@ export interface CheckJsonSnapshot {
   aggregate: NormalizedStatus;
   checked_at: string;
   results: CheckJsonServiceResult[];
-}
-
-type SupplementalField = "version" | "region" | "url";
-
-const PAYLOAD_SUPPORTED_FIELDS: Record<SupplementalField, boolean> = {
-  version: true,
-  region: true,
-  url: false,
-};
-
-function isObjectLike(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function normalizeOptionalString(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 function toIsoString(date: Date): string {
@@ -60,22 +40,6 @@ function toOptionalIsoString(date: Date | undefined): string | undefined {
   return date.toISOString();
 }
 
-type SupplementalProbeResult = ProbeResult & Partial<Record<SupplementalField, unknown>>;
-
-function readSupplementalField(result: ProbeResult, field: SupplementalField): string | undefined {
-  const record = result as SupplementalProbeResult;
-  const direct = normalizeOptionalString(record[field]);
-  if (direct) {
-    return direct;
-  }
-
-  if (PAYLOAD_SUPPORTED_FIELDS[field] && isObjectLike(result.payload)) {
-    return normalizeOptionalString(result.payload[field]);
-  }
-
-  return undefined;
-}
-
 function buildServiceResultPayload(result: ProbeResult): CheckJsonServiceResult {
   const payload: CheckJsonServiceResult = {
     name: result.serviceName,
@@ -91,17 +55,17 @@ function buildServiceResultPayload(result: ProbeResult): CheckJsonServiceResult 
     payload.checked_at = checkedAt;
   }
 
-  const version = readSupplementalField(result, "version");
+  const version = readProbeSupplementalField(result, "version");
   if (version) {
     payload.version = version;
   }
 
-  const region = readSupplementalField(result, "region");
+  const region = readProbeSupplementalField(result, "region");
   if (region) {
     payload.region = region;
   }
 
-  const url = readSupplementalField(result, "url");
+  const url = readProbeSupplementalField(result, "url");
   if (url) {
     payload.url = url;
   }
