@@ -728,3 +728,6 @@ function stripAnsi(value: string): string {
 function isNormalizedStatus(value: string): value is NormalizedStatus {
   return value === "ok" || value === "degraded" || value === "down";
 }
+
+export type { DashboardRuntimeOptions, ShutdownReason, ShutdownResult } from "./runtime";
+export { DashboardRuntime } from "./runtime";
