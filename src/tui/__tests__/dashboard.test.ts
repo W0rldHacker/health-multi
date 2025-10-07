@@ -1,3 +1,6 @@
+import { Text } from "ink";
+import { render } from "ink-testing-library";
+import React from "react";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -38,6 +41,50 @@ describe("renderDashboard", () => {
     services,
     colorMode: "no-color",
   };
+
+  function renderFrame(state: DashboardState, width: number): string {
+    const instance: ReturnType<typeof render> = render(
+      React.createElement(Text, null, renderDashboard(state, width)),
+    );
+    const frame = instance.lastFrame();
+    instance.unmount();
+    return typeof frame === "string" ? frame : "";
+  }
+
+  it("matches snapshot for the service table", () => {
+    const frame = renderFrame(
+      {
+        ...baseState,
+        filters: "tag:prod",
+        searchQuery: "api",
+        sort: { by: "latency", direction: "asc" },
+      },
+      100,
+    );
+
+    expect(frame).toMatchInlineSnapshot(`
+      "Aggregate: OK | Services: 2 | Last tick: 2024-01-01T12:00:00.000Z
+      Filters: tag:prod | Search: "api" | Sort: latency ↑ | Matches: 1/2
+      Keys: [f]ilter  [/] search  [s] sort  [q] quit
+      Name                   │ Status   │  Latency │ Version  │ Region   │    Age │ Tags
+      ───────────────────────┼──────────┼──────────┼──────────┼──────────┼────────┼───────────────────────
+      api                    │ OK       │   123 ms │ 1.2.3    │ eu-cent… │    15s │ prod, eu"
+    `);
+  });
+
+  it("matches snapshot for a narrow terminal width", () => {
+    const frame = renderFrame(baseState, 60);
+
+    expect(frame).toMatchInlineSnapshot(`
+      "Aggregate: OK | Services: 2 | Last tick: 2024-01-01T12:00:00.000Z
+      Filters: none | Search: — | Sort: name ↑ | Matches: 2/2
+      Keys: [f]ilter  [/] search  [s] sort  [q] quit
+      Na… │ Status   │  Latency │ Version  │ Region │    Age │ Ta…
+      ────┼──────────┼──────────┼──────────┼────────┼────────┼────
+      api │ OK       │   123 ms │ 1.2.3    │ eu-ce… │    15s │ pr…
+      au… │ DEGRADED │   988 ms │ 2.0.0    │ us-ea… │     1m │ st…"
+    `);
+  });
 
   it("renders header, context, hints and table", () => {
     const output = renderDashboard(
@@ -107,7 +154,7 @@ describe("renderDashboard", () => {
     expect(firstDataRow).toContain("auth");
   });
 
-  it("renders detail pane with sparkline and metadata", () => {
+  it("matches snapshot for the service detail pane", () => {
     const detailPane: ServiceDetailPane = {
       service: services[0],
       latencyHistoryMs: [10, 20, 40, 80],
@@ -117,20 +164,38 @@ describe("renderDashboard", () => {
       capturedAt: new Date("2024-01-01T12:00:00.000Z"),
     };
 
-    const output = renderDashboard(
+    const frame = renderFrame(
       {
         ...baseState,
         detailPane,
       },
       100,
     );
-    const lines = output.split("\n");
 
-    expect(lines.some((line) => /^─{20,}$/u.test(line))).toBe(true);
-    expect(output).toContain("Detail: api");
-    expect(output).toContain("Latency sparkline (last 4):");
-    expect(output).toContain("Last response JSON:");
-    expect(output).toContain('\n  {\n    "status": "ok",\n    "version": "1.2.3"\n  }\n');
-    expect(output).toContain("Headers:\n  content-type: application/json");
+    expect(frame).toMatchInlineSnapshot(`
+      "Aggregate: OK | Services: 2 | Last tick: 2024-01-01T12:00:00.000Z
+      Filters: none | Search: — | Sort: name ↑ | Matches: 2/2
+      Keys: [f]ilter  [/] search  [s] sort  [q] quit
+      Name                   │ Status   │  Latency │ Version  │ Region   │    Age │ Tags
+      ───────────────────────┼──────────┼──────────┼──────────┼──────────┼────────┼───────────────────────
+      api                    │ OK       │   123 ms │ 1.2.3    │ eu-cent… │    15s │ prod, eu
+      auth                   │ DEGRADED │   988 ms │ 2.0.0    │ us-east… │     1m │ stage
+      ────────────────────────────────────────────────────────────────────────────────────────────────────
+      Detail: api
+      Status: OK
+      Latency: 123 ms
+      URL: https://api.example.com/health
+      Region: eu-central-1
+      Tags: prod, eu
+      Latency sparkline (last 4): ▁▂▄█
+      Captured at: 2024-01-01T12:00:00.000Z
+      Last response JSON:
+        {
+          "status": "ok",
+          "version": "1.2.3"
+        }
+      Headers:
+        content-type: application/json"
+    `);
   });
 });
