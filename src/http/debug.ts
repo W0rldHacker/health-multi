@@ -4,6 +4,7 @@ import { performance } from "node:perf_hooks";
 import type { Dispatcher } from "undici";
 
 import { redactOptionalUrlCredentials, redactUrlCredentials } from "../redaction";
+import { formatHttpDebugLogEntry } from "./debug-format";
 
 interface ConnectionState {
   start: number;
@@ -57,7 +58,7 @@ export interface HttpRequestDebugOptions {
 }
 
 const DEFAULT_LOGGER = (entry: HttpDebugLogEntry) => {
-  process.stderr.write(`${JSON.stringify(entry)}\n`);
+  process.stderr.write(`${formatHttpDebugLogEntry(entry)}\n`);
 };
 
 const pendingContexts: HttpRequestDebugContext[] = [];
