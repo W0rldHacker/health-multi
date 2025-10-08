@@ -1,4 +1,5 @@
 import { type NormalizedStatus } from "../domain";
+import { redactOptionalUrlCredentials } from "../redaction";
 
 export interface ServiceRow {
   /** Human readable unique name of the service. */
@@ -572,8 +573,10 @@ function renderDetailPane(
     lines.push(`Latency: ${formatLatency(service.latencyMs)}`);
   }
 
-  if (pane.url ?? service.url) {
-    lines.push(`URL: ${pane.url ?? service.url}`);
+  const rawUrl = pane.url ?? service.url;
+  if (rawUrl) {
+    const sanitizedUrl = redactOptionalUrlCredentials(rawUrl) ?? rawUrl;
+    lines.push(`URL: ${sanitizedUrl}`);
   }
 
   if (service.region) {

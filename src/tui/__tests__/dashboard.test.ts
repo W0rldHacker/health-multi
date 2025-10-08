@@ -198,4 +198,19 @@ describe("renderDashboard", () => {
         content-type: application/json"
     `);
   });
+
+  it("redacts credentials embedded in service URLs", () => {
+    const frame = renderFrame(
+      {
+        ...baseState,
+        detailPane: {
+          service: { name: "api" },
+          url: "https://user:secret@example.com/health",
+        },
+      },
+      100,
+    );
+
+    expect(frame).toContain("URL: https://user:[redacted]@example.com/health");
+  });
 });

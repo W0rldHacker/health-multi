@@ -1,8 +1,11 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
+import { performance } from "node:perf_hooks";
 import { describe, expect, it } from "vitest";
 
+import { REDACTED_PLACEHOLDER } from "../../redaction";
 import type { HttpDebugLogEntry } from "../debug";
+import { createHttpRequestDebugContext } from "../debug";
 import { RequestTimeoutError, httpRequest } from "../request";
 
 async function listen(server: ReturnType<typeof createServer>): Promise<number> {
@@ -107,5 +110,27 @@ describe("httpRequest debug diagnostics", () => {
     expect(entry.timings.totalMs).toBeGreaterThanOrEqual(0);
 
     await close(server);
+  });
+
+  it("redacts sensitive fields in debug log entries", () => {
+    const logs: HttpDebugLogEntry[] = [];
+    const context = createHttpRequestDebugContext({
+      url: new URL("http://user:secret@example.com/health"),
+      method: "GET",
+      attempt: 1,
+      retries: 0,
+      logger: (entry) => {
+        logs.push(entry);
+      },
+    });
+
+    context.register();
+    context.setProxy("http://proxyuser:proxypass@proxy.internal");
+    context.finalizeIfNeeded(performance.now(), "success");
+
+    expect(logs).toHaveLength(1);
+    const [entry] = logs;
+    expect(entry.url).toBe(`http://user:${REDACTED_PLACEHOLDER}@example.com/health`);
+    expect(entry.proxy).toBe(`http://proxyuser:${REDACTED_PLACEHOLDER}@proxy.internal`);
   });
 });

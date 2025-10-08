@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import type { NormalizedStatus } from "../../domain";
-import { parseCliCommand, parseCliFlags, exitCodeFromAggregateStatus } from "../index";
+import type { CliParameters, NormalizedStatus } from "../../domain";
+import { REDACTED_PLACEHOLDER } from "../../redaction";
+import {
+  parseCliCommand,
+  parseCliFlags,
+  exitCodeFromAggregateStatus,
+  redactCliParameters,
+} from "../index";
 
 interface SimulateCliOptions {
   env?: NodeJS.ProcessEnv;
@@ -30,8 +36,10 @@ function simulateCliExecution(
     },
   });
 
+  const redactedParameters = redactCliParameters(parameters);
+
   return {
-    stdout: `${JSON.stringify({ command, aggregateStatus, parameters }, null, 2)}\n`,
+    stdout: `${JSON.stringify({ command, aggregateStatus, parameters: redactedParameters }, null, 2)}\n`,
     stderr: warnings.length > 0 ? `${warnings.join("\n")}\n` : "",
     exitCode: exitCodeFromAggregateStatus(aggregateStatus),
   };
@@ -71,7 +79,7 @@ describe("CLI process snapshots", () => {
     "concurrency": 5,
     "configPath": "./services.yaml",
     "headers": {
-      "Authorization": "Bearer token",
+      "Authorization": "[redacted]",
     },
     "insecure": true,
     "intervalMs": 30000,
@@ -125,4 +133,12 @@ describe("CLI process snapshots", () => {
     expect(result.stderr).toBe("");
     expect(result.exitCode).toBe(0);
   });
+});
+it("masks proxy credentials in CLI snapshots", () => {
+  const result = simulateCliExecution(["check", "--proxy", "http://user:secret@proxy.local"], {
+    aggregateStatus: "ok",
+  });
+
+  const payload = JSON.parse(result.stdout) as { parameters: CliParameters };
+  expect(payload.parameters.proxy).toBe(`http://user:${REDACTED_PLACEHOLDER}@proxy.local`);
 });

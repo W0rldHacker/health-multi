@@ -3,6 +3,8 @@ import type { Socket } from "node:net";
 import { performance } from "node:perf_hooks";
 import type { Dispatcher } from "undici";
 
+import { redactOptionalUrlCredentials, redactUrlCredentials } from "../redaction";
+
 interface ConnectionState {
   start: number;
   end?: number;
@@ -216,7 +218,7 @@ export interface HttpRequestDebugContext {
   setProxy(proxy: string | undefined): void;
   onResponse(response: Dispatcher.ResponseData): void;
   onError(error: Error): void;
-  finalizeIfNeeded(monotonicNow?: number): void;
+  finalizeIfNeeded(monotonicNow?: number, outcomeOverride?: "success" | "error"): void;
   onRequestCreate(request: object): void;
   onSendHeaders(rawHeaders: string, socket: Socket, connection: ConnectionState | undefined): void;
   onResponseHeaders(response: { statusCode: number; headers: Buffer[] }): void;
@@ -396,7 +398,13 @@ class InternalHttpRequestDebugContext implements HttpRequestDebugContext {
       outcome,
     };
 
-    this.logger(entry);
+    const sanitizedEntry: HttpDebugLogEntry = {
+      ...entry,
+      url: redactUrlCredentials(entry.url),
+      proxy: redactOptionalUrlCredentials(entry.proxy),
+    };
+
+    this.logger(sanitizedEntry);
 
     if (this.request) {
       contextByRequest.delete(this.request);
