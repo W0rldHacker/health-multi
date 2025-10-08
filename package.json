@@ -1,6 +1,6 @@
 {
   "name": "@worldhacker/health-multi",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "CLI for parallel polling /health, TUI, aggregated statuses, JSON/Prometheus export, strict exit codes",
   "license": "MIT",
   "scripts": {
@@ -17,7 +17,8 @@
     "test": "vitest run",
     "bench:storage": "tsc --project tsconfig.bench.json && node benchmarks/fix-esm-extensions.mjs && node --enable-source-maps benchmarks/.dist/benchmarks/storage-bench.js",
     "bench:storage:cpu": "tsc --project tsconfig.bench.json && node benchmarks/fix-esm-extensions.mjs && node --enable-source-maps --cpu-prof --cpu-prof-dir=./benchmarks/profiles benchmarks/.dist/benchmarks/storage-bench.js",
-    "bench:storage:heap": "tsc --project tsconfig.bench.json && node benchmarks/fix-esm-extensions.mjs && node --enable-source-maps --heap-prof --heap-prof-dir=./benchmarks/profiles benchmarks/.dist/benchmarks/storage-bench.js"
+    "bench:storage:heap": "tsc --project tsconfig.bench.json && node benchmarks/fix-esm-extensions.mjs && node --enable-source-maps --heap-prof --heap-prof-dir=./benchmarks/profiles benchmarks/.dist/benchmarks/storage-bench.js",
+    "bench:storage:soak": "tsc --project tsconfig.bench.json && node benchmarks/fix-esm-extensions.mjs && node --enable-source-maps benchmarks/.dist/benchmarks/storage-soak.js"
   },
   "engines": {
     "node": ">=20.10.0 || >=22.0.0"

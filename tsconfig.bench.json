@@ -6,6 +6,6 @@
     "sourceMap": true,
     "inlineSources": true
   },
-  "include": ["benchmarks/storage-bench.ts", "src/**/*"],
+  "include": ["benchmarks/storage-bench.ts", "benchmarks/storage-soak.ts", "src/**/*"],
   "exclude": ["node_modules", "benchmarks/.dist"]
 }

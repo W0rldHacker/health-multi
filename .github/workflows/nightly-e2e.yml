@@ -1,0 +1,55 @@
+name: Nightly E2E and Performance
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  nightly:
+    name: Nightly end-to-end and performance checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run end-to-end tests (if available)
+        run: npm run e2e --if-present
+
+      - name: Run performance tests (if available)
+        run: npm run load --if-present
+
+      - name: Run long-running storage soak
+        run: npm run bench:storage:soak
+        env:
+          SOAK_DURATION_MINUTES: "120"
+          SOAK_MAX_RSS_MB: "256"
+          SOAK_MAX_CPU_PERCENT: "65"
+
+      - name: Publish soak metrics to summary
+        if: always()
+        run: |
+          if [ -f benchmarks/profiles/soak/storage-soak-metrics.json ]; then
+            node -e "const fs=require('fs');const path='benchmarks/profiles/soak/storage-soak-metrics.json';const data=JSON.parse(fs.readFileSync(path,'utf8'));const lines=['## Storage soak metrics','- Iterations: '+data.iterations,'- Duration: '+data.durationSeconds.toFixed(1)+'s','- Peak RSS: '+data.rssPeakMb.toFixed(1)+' MB','- Average CPU: '+data.cpuPercent.toFixed(1)+'%','- Heap snapshot: '+data.heapSnapshotPath];fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\\n')+'\\n');"
+          else
+            echo "No soak metrics produced" >> "$GITHUB_STEP_SUMMARY";
+          fi
+
+      - name: Upload soak artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storage-soak-profiles
+          path: benchmarks/profiles/soak
+          if-no-files-found: warn
+          retention-days: 14

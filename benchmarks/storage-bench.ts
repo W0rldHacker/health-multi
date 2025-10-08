@@ -279,7 +279,7 @@ async function respondWithFailure(ctx: Ctx, service: MockServicePrototype): Prom
   }
 }
 
-interface BenchOptions {
+export interface BenchOptions {
   serviceCount: number;
   batches: number;
   concurrency: number;
@@ -287,7 +287,7 @@ interface BenchOptions {
   missingStatusPolicy: MissingStatusPolicy;
 }
 
-async function runBench(options: BenchOptions): Promise<void> {
+export async function runBench(options: BenchOptions): Promise<void> {
   await mkdir(PROFILE_DIR, { recursive: true });
 
   const cluster = await startBenchCluster(options.serviceCount);
@@ -405,7 +405,7 @@ function parseInteger(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function readOptionsFromEnv(): BenchOptions {
+export function readOptionsFromEnv(): BenchOptions {
   return {
     serviceCount: parseInteger(process.env.BENCH_SERVICE_COUNT, DEFAULT_SERVICE_COUNT),
     batches: parseInteger(process.env.BENCH_BATCHES, DEFAULT_BATCHES),
