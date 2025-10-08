@@ -193,7 +193,7 @@ export function parseCliFlags(
 
   if (insecureFlagUsed) {
     warn(
-      "Warning: TLS certificate verification is disabled (--insecure). Do not use this option in production.",
+      "Warning: --insecure disables TLS certificate verification. Connections may be intercepted. Limit usage to trusted development or lab environments.",
     );
   }
 
