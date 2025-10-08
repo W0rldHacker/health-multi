@@ -20,7 +20,7 @@ export function parseServicesConfig(
     parsed = parse(content);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown parse error";
-    throw new ConfigError(`Unable to parse services configuration: ${message}`);
+    throw new ConfigError(`Unable to parse services configuration: ${message}`, { cause: error });
   }
 
   const env = options.env ?? process.env;
@@ -41,7 +41,9 @@ export async function loadServicesConfig(
     raw = await fs.readFile(path, "utf8");
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown read error";
-    throw new ConfigError(`Unable to read services configuration at ${path}: ${message}`);
+    throw new ConfigError(`Unable to read services configuration at ${path}: ${message}`, {
+      cause: error,
+    });
   }
 
   return parseServicesConfig(raw, options);

@@ -1,8 +1,8 @@
-export class ConfigError extends Error {
-  readonly exitCode = 3;
+import { UsageError } from "../errors";
 
-  constructor(message: string) {
-    super(message);
+export class ConfigError extends UsageError {
+  constructor(message: string, options: { cause?: unknown } = {}) {
+    super(message, options);
     this.name = "ConfigError";
   }
 }
