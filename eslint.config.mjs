@@ -22,7 +22,7 @@ const tsRecommended = tseslint.configs.recommendedTypeChecked.map((config) => ({
 
 export default [
   {
-    ignores: ["dist", "node_modules", "coverage", ".changeset"],
+    ignores: ["dist", "node_modules", "coverage", ".changeset", "benchmarks/.dist/**"],
   },
   js.configs.recommended,
   ...tsRecommended,

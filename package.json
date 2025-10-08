@@ -1,6 +1,6 @@
 {
   "name": "@worldhacker/health-multi",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "CLI for parallel polling /health, TUI, aggregated statuses, JSON/Prometheus export, strict exit codes",
   "license": "MIT",
   "scripts": {
@@ -14,7 +14,10 @@
     "commitlint": "commitlint --edit",
     "changeset": "changeset",
     "release": "changeset publish",
-    "test": "vitest run"
+    "test": "vitest run",
+    "bench:storage": "tsc --project tsconfig.bench.json && node benchmarks/fix-esm-extensions.mjs && node --enable-source-maps benchmarks/.dist/benchmarks/storage-bench.js",
+    "bench:storage:cpu": "tsc --project tsconfig.bench.json && node benchmarks/fix-esm-extensions.mjs && node --enable-source-maps --cpu-prof --cpu-prof-dir=./benchmarks/profiles benchmarks/.dist/benchmarks/storage-bench.js",
+    "bench:storage:heap": "tsc --project tsconfig.bench.json && node benchmarks/fix-esm-extensions.mjs && node --enable-source-maps --heap-prof --heap-prof-dir=./benchmarks/profiles benchmarks/.dist/benchmarks/storage-bench.js"
   },
   "engines": {
     "node": ">=20.10.0 || >=22.0.0"
@@ -42,6 +45,7 @@
     "prettier": "^3.6.2",
     "react": "^19.2.0",
     "tar": "^7.5.1",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.45.0",
     "vitest": "^3.2.4"

@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "./benchmarks/.dist",
+    "sourceMap": true,
+    "inlineSources": true
+  },
+  "include": ["benchmarks/storage-bench.ts", "src/**/*"],
+  "exclude": ["node_modules", "benchmarks/.dist"]
+}

@@ -3,6 +3,8 @@ node_modules/
 
 # Build output
 dist/
+benchmarks/profiles/
+benchmarks/.dist/
 
 # Logs
 npm-debug.log*
