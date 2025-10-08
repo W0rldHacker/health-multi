@@ -18,6 +18,12 @@ describe("parseCliCommand", () => {
     expect(result.argv).toEqual(["--config", "./services.yaml", "--debug"]);
   });
 
+  it.each([["--help"], ["-h"], ["help"]])("normalizes %s to the help command", (token) => {
+    const result = parseCliCommand([token]);
+
+    expect(result).toEqual({ command: "help", argv: [] });
+  });
+
   it("throws when no command is provided", () => {
     expect(() => parseCliCommand([])).toThrow(CliCommandError);
   });

@@ -1,6 +1,8 @@
 import { CliCommandError } from "./errors";
 
-export const SUPPORTED_CLI_COMMANDS = ["run", "check", "export"] as const;
+const HELP_ALIASES = new Set(["help", "--help", "-h"]);
+
+export const SUPPORTED_CLI_COMMANDS = ["run", "check", "export", "help"] as const;
 
 export type CliCommand = (typeof SUPPORTED_CLI_COMMANDS)[number];
 
@@ -15,10 +17,16 @@ function isSupportedCommand(value: string): value is CliCommand {
 
 export function parseCliCommand(argv: readonly string[]): ParsedCliCommand {
   if (argv.length === 0) {
-    throw new CliCommandError("A command is required. Expected one of: run, check, export");
+    throw new CliCommandError(
+      `A command is required. Expected one of: ${SUPPORTED_CLI_COMMANDS.join(", ")}`,
+    );
   }
 
   const [commandToken, ...rest] = argv;
+
+  if (HELP_ALIASES.has(commandToken)) {
+    return { command: "help", argv: [...rest] };
+  }
 
   if (!isSupportedCommand(commandToken)) {
     throw new CliCommandError(
